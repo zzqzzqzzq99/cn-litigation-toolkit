@@ -1,0 +1,7 @@
+# 民商事诉讼工具箱 — Python 脚本依赖
+# 安装: pip install -r requirements.txt
+#
+# python-docx: Word 文档生成与校验 (md2docx_legal.py, verify_docx.py, legal_common.py)
+# extract_format.py 和 detect_capabilities.py 仅使用标准库，无额外依赖
+
+python-docx>=0.8.11
