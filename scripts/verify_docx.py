@@ -49,6 +49,18 @@ from legal_common import (
 # V1-V12 校验函数
 # ===========================================================================
 
+# 对齐值 → 中文说明（用于校验报告的"期望"列）
+ALIGN_LABELS = {"center": "居中", "left": "左对齐", "right": "右对齐", "both": "两端对齐"}
+
+# 对齐值 → python-docx 枚举
+ALIGN_ENUMS = {
+    "center": WD_ALIGN_PARAGRAPH.CENTER,
+    "left": WD_ALIGN_PARAGRAPH.LEFT,
+    "right": WD_ALIGN_PARAGRAPH.RIGHT,
+    "both": WD_ALIGN_PARAGRAPH.JUSTIFY,
+}
+
+
 # ---------------------------------------------------------------------------
 # V1: 页面尺寸 — 11906×16838 twips (A4)
 # ---------------------------------------------------------------------------
@@ -109,8 +121,11 @@ def verify_v3(doc, params):
 # ---------------------------------------------------------------------------
 def verify_v4(doc, params):
     title = params["title"]
+    # 期望对齐取自 format-spec，而非硬编码 center
+    expected = title.get("align", "center")
+    expected_desc = f"{expected} ({ALIGN_LABELS.get(expected, expected)})"
     if not doc.paragraphs:
-        return make_result("V4", "标题对齐", False, "center (居中)", "文档无段落")
+        return make_result("V4", "标题对齐", False, expected_desc, "文档无段落")
     title_para = doc.paragraphs[0]
     ppr = title_para._element.find(qn("w:pPr"))
     jc_val = None
@@ -123,9 +138,10 @@ def verify_v4(doc, params):
         align_map = {WD_ALIGN_PARAGRAPH.CENTER: "center", WD_ALIGN_PARAGRAPH.LEFT: "left",
                      WD_ALIGN_PARAGRAPH.RIGHT: "right", WD_ALIGN_PARAGRAPH.JUSTIFY: "both"}
         jc_val = align_map.get(title_para.alignment, str(title_para.alignment))
-    passed = (jc_val == "center")
+    # 未设置 w:jc 时 Word 按左对齐渲染，故期望 left 时视为合格
+    passed = (jc_val == expected) if jc_val is not None else (expected == "left")
     actual = jc_val if jc_val else "未设置(默认left)"
-    return make_result("V4", "标题对齐", passed, "center (居中)", actual)
+    return make_result("V4", "标题对齐", passed, expected_desc, actual)
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +353,9 @@ def verify_v9(doc, params):
 # ---------------------------------------------------------------------------
 def verify_v10(doc, params):
     issues = []
+    # 期望对齐取自 format-spec，而非硬编码 right
+    expected = params.get("signature", {}).get("align", "right")
+    expected_enum = ALIGN_ENUMS.get(expected)
     total = len(doc.paragraphs)
     for idx, para in enumerate(doc.paragraphs):
         text = para.text.strip()
@@ -353,18 +372,18 @@ def verify_v10(doc, params):
         jc_el = ppr.find(qn("w:jc"))
         if jc_el is None:
             # 检查 alignment 属性
-            if para.alignment is not None and para.alignment != WD_ALIGN_PARAGRAPH.RIGHT:
-                issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐未设为right")
-            elif para.alignment is None:
+            if para.alignment is not None and para.alignment != expected_enum:
+                issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐未设为{expected}")
+            elif para.alignment is None and expected != "left":
                 issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无对齐设置(默认left)")
         else:
             jc_val = jc_el.get(qn("w:val"))
-            if jc_val != "right":
+            if jc_val != expected:
                 issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐={jc_val}")
 
     passed = len(issues) == 0
     actual = "均符合" if passed else "; ".join(issues[:3])
-    return make_result("V10", "签名区右对齐", passed, "jc=right", actual)
+    return make_result("V10", "签名区右对齐", passed, f"jc={expected}", actual)
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +425,7 @@ def verify_v12(doc, params):
         straight_single = text.count("'")
         if straight_double > 0 or straight_single > 0:
             total = straight_double + straight_single
-            issues.append(f"段落[{idx}]: {total} 个直引号 (\"={straight_double}, '='{straight_single})")
+            issues.append(f"段落[{idx}]: {total} 个直引号 (\"={straight_double}, '={straight_single})")
 
     passed = len(issues) == 0
     actual = "无直引号" if passed else "; ".join(issues[:3])
