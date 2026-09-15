@@ -840,19 +840,18 @@ def _verify_v10_signature_align(doc, params):
             continue
         if text.startswith("此致"):
             continue  # 此致不是右对齐
-        if para.alignment is not None and para.alignment != WD_ALIGN_PARAGRAPH.RIGHT:
-            # 检查 jc XML
-            ppr = para._element.find(qn("w:pPr"))
-            if ppr is not None:
-                jc_el = ppr.find(qn("w:jc"))
-                if jc_el is not None:
-                    jc_val = jc_el.get(qn("w:val"))
-                    if jc_val != "right":
-                        issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐={jc_val}")
-                else:
-                    issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无对齐设置")
-            else:
-                issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无 pPr")
+        # 先看 w:jc，缺失即视为未设置（Word 按默认左对齐渲染），必须报不合格；
+        # 不能因 para.alignment is None 而跳过该段落。
+        ppr = para._element.find(qn("w:pPr"))
+        jc_el = ppr.find(qn("w:jc")) if ppr is not None else None
+        if jc_el is not None:
+            jc_val = jc_el.get(qn("w:val"))
+            if jc_val != "right":
+                issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐={jc_val}")
+        elif para.alignment is None:
+            issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无对齐设置(默认left)")
+        elif para.alignment != WD_ALIGN_PARAGRAPH.RIGHT:
+            issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 对齐未设为right")
 
     passed = len(issues) == 0
     actual = "均符合" if passed else "; ".join(issues[:3])
