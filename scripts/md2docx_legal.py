@@ -1000,9 +1000,11 @@ def _auto_fix(doc: Document, failed_items: list[dict], params: dict) -> list[str
     """自动修复可精确定向修正的偏差。"""
     fixed = []
     body = params["body"]
-    page = params["page"]
     title = params["title"]
     builder = DocxBuilder(params)  # 创建一次，复用
+    # DocxBuilder.__init__ 会新建一个空白 Document，而 _setup_page() 作用于
+    # builder.doc。此处指向待修复文档，否则页面修复会写进那个空白文档。
+    builder.doc = doc
 
     for item in failed_items:
         check = item["check"]
