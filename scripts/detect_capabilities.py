@@ -124,8 +124,14 @@ def parse_profile(profile_path: Path) -> dict[str, list[str]]:
             # 匹配 "SLOT.*:" 开头的行
             if re.match(rf"{slot}\.\*", stripped):
                 # 在该行中搜索已知 provider 名称
-                for prov in KNOWN_PROVIDERS:
-                    if re.search(re.escape(prov), stripped, flags=re.IGNORECASE):
+                # 仅认定归属于本 slot 的 provider（与下方中文别名分支一致），
+                # 否则行内注释提到的其它 slot 的 provider 会被误计入本 slot。
+                # 同时要求词边界，避免 "ima" 命中 "image" 这类子串误匹配。
+                for prov, prov_spec in KNOWN_PROVIDERS.items():
+                    if prov_spec["slot"] != slot:
+                        continue
+                    pattern = rf"(?<![\w-]){re.escape(prov)}(?![\w-])"
+                    if re.search(pattern, stripped, flags=re.IGNORECASE):
                         if prov not in declared[slot]:
                             declared[slot].append(prov)
                 # 也检查中文别名
