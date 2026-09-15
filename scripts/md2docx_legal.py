@@ -966,11 +966,14 @@ def convert(md_path: str, docx_path: str, spec_path: str | None = None) -> dict:
     # Tier 3: pandoc
     try:
         import subprocess
-        # pandoc 模板路径：相对于套件根目录（scripts 的父目录）
-        _ref_doc = str(Path(__file__).resolve().parent.parent / "templates" / "reference.docx")
+        # pandoc 模板路径：templates/ 与本脚本同级（均位于 scripts/ 下）
+        _ref_doc = Path(__file__).resolve().parent / "templates" / "reference.docx"
+        _cmd = ["pandoc", md_path, "-o", docx_path]
+        # 模板缺失时不传 --reference-doc，否则 pandoc 直接报错退出
+        if _ref_doc.is_file():
+            _cmd.append(f"--reference-doc={_ref_doc}")
         result = subprocess.run(
-            ["pandoc", md_path, "-o", docx_path, f"--reference-doc={_ref_doc}"],
-            capture_output=True, text=True, timeout=30
+            _cmd, capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0:
             report["tier"] = "Tier 3 (pandoc)"
