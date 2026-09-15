@@ -31,6 +31,7 @@ from legal_common import (
     SIGNATURE_KEYWORDS, PARTY_KEYWORDS, SECTION_TITLES, DATE_PATTERN,
     load_spec, is_title_paragraph, is_signature_paragraph,
     get_run_font_info, make_result as _make_result_common,
+    force_utf8_output,
 )
 
 # ---------------------------------------------------------------------------
@@ -1064,6 +1065,7 @@ def _auto_fix(doc: Document, failed_items: list[dict], params: dict) -> list[str
 # ===========================================================================
 
 def main() -> int:
+    force_utf8_output()
     parser = argparse.ArgumentParser(
         description="法律文书 Markdown → Word 转换器",
         formatter_class=argparse.RawDescriptionHelpFormatter,

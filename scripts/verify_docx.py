@@ -42,6 +42,7 @@ from legal_common import (
     PARTY_KEYWORDS, DATE_PATTERN,
     load_spec, is_title_paragraph, is_signature_paragraph,
     is_empty_paragraph, get_run_font_info, make_result,
+    force_utf8_output,
 )
 
 # ===========================================================================
@@ -440,6 +441,7 @@ def verify_docx(doc, params):
 # ===========================================================================
 
 def main():
+    force_utf8_output()
     parser = argparse.ArgumentParser(
         description="法律文书 Word 排版校验脚本（独立 12 项校验器）",
         formatter_class=argparse.RawDescriptionHelpFormatter,

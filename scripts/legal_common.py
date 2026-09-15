@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -411,6 +412,26 @@ def get_run_font_info(run) -> tuple[str | None, str | None, int | None]:
             sz_val = int(sz_el.get(qn("w:val")))
     font_name = run.font.name or ea_font
     return (font_name, ea_font, sz_val)
+
+
+# ===========================================================================
+# 控制台输出编码
+# ===========================================================================
+
+def force_utf8_output() -> None:
+    """确保 stdout/stderr 以 UTF-8 输出。
+
+    脚本输出含 ✅ ❌ ⚠️ 等符号与中文。Windows 上仅当 stdout 连接到控制台时
+    才使用控制台代码页；一旦输出被重定向或管道接收，Python 会退回 locale
+    编码（中文环境为 cp936/GBK），无法表示这些字符而抛出 UnicodeEncodeError。
+
+    对已包装或不支持 reconfigure() 的流静默跳过。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 
 # ===========================================================================
