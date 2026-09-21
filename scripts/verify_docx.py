@@ -367,7 +367,8 @@ def verify_v10(doc, params):
             continue  # 此致是首行缩进，不是右对齐
         ppr = para._element.find(qn("w:pPr"))
         if ppr is None:
-            issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无 pPr")
+            if expected != "left":
+                issues.append(f"签名段落[{idx}]: \"{text[:20]}\" 无 pPr")
             continue
         jc_el = ppr.find(qn("w:jc"))
         if jc_el is None:

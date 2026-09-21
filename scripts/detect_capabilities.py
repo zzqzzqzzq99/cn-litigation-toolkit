@@ -136,6 +136,9 @@ def parse_profile(profile_path: Path) -> dict[str, list[str]]:
                             declared[slot].append(prov)
                 # 也检查中文别名
                 for cn_name, prov_name in CHINESE_ALIASES.items():
+                    # 英文 provider 已在上方按词边界匹配，避免别名路径重新误命中 image。
+                    if cn_name.isascii():
+                        continue
                     if cn_name in stripped:
                         prov_spec = KNOWN_PROVIDERS.get(prov_name)
                         if prov_spec and prov_spec["slot"] == slot and prov_name not in declared[slot]:
